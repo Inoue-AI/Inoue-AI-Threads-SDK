@@ -1,4 +1,42 @@
-# Threads Python SDK
+# Inoue-AI Threads SDK
+
+Multi-language SDK for the Meta Threads Graph API. Ships both a Python client
+(under `threads/`) and a Go client (under `go/`).
+
+> **Note:** This repository was renamed from `Inoue-AI/Threads-Python-SDK` to
+> `Inoue-AI/Inoue-AI-Threads-SDK`. GitHub auto-redirects the old URL, so
+> existing `pip install ... @ git+https://github.com/Inoue-AI/Threads-Python-SDK.git`
+> commands continue to work. The local clone keeps the legacy directory name.
+
+## Python
+
+The Python source remains under [`threads/`](./threads). Install:
+
+```bash
+pip install "git+https://github.com/Inoue-AI/Inoue-AI-Threads-SDK.git"
+```
+
+## Go
+
+The Go SDK lives under [`go/`](./go). It exposes a focused subset matching
+what the Inoue AI Go backend calls (user profile, posts list/get, OAuth token
+refresh).
+
+```bash
+go get github.com/Inoue-AI/Inoue-AI-Threads-SDK/go@latest
+```
+
+```go
+client := threads.New(threads.ClientOptions{AccessToken: "..."})
+defer client.Close()
+user, err := client.GetUser(ctx, "me", nil)
+```
+
+See [`go/README.md`](./go/README.md) for the full Go API.
+
+---
+
+## Original Python SDK
 
 An async Python SDK for the **Meta Threads API** — covering publishing, media retrieval, insights, reply management, and keyword search.
 
