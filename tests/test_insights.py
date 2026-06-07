@@ -2,24 +2,26 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
-from threads.models.insights import InsightPeriod, MediaMetric
+from threads.models.insights import (
+    AccountMetric,
+    DemographicBreakdown,
+    InsightPeriod,
+    MediaMetric,
+)
 
 
 @pytest.mark.asyncio
 async def test_get_media_insights(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/post_1/insights\?"),
-        payload={
+    router.add(
+        "/post_1/insights",
+        json={
             "data": [
                 {
                     "name": "views",
@@ -49,12 +51,12 @@ async def test_get_media_insights(
 
 @pytest.mark.asyncio
 async def test_get_account_insights(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads_insights\?"),
-        payload={
+    router.add(
+        "/me/threads_insights",
+        json={
             "data": [
                 {
                     "name": "views",
@@ -82,12 +84,12 @@ async def test_get_account_insights(
 
 @pytest.mark.asyncio
 async def test_get_metric_convenience(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/post_2/insights\?"),
-        payload={
+    router.add(
+        "/post_2/insights",
+        json={
             "data": [
                 {
                     "name": "likes",
@@ -108,13 +110,10 @@ async def test_get_metric_convenience(
 
 @pytest.mark.asyncio
 async def test_get_metric_empty(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/post_3/insights\?"),
-        payload={"data": []},
-    )
+    router.add("/post_3/insights", json={"data": []})
 
     metric = await client.insights.get_metric("post_3", MediaMetric.SHARES)
     assert metric is None
@@ -122,12 +121,12 @@ async def test_get_metric_empty(
 
 @pytest.mark.asyncio
 async def test_follower_demographics(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads_insights\?"),
-        payload={
+    router.add(
+        "/me/threads_insights",
+        json={
             "data": [
                 {
                     "name": "follower_demographics",
@@ -139,8 +138,6 @@ async def test_follower_demographics(
             ],
         },
     )
-
-    from threads.models.insights import AccountMetric, DemographicBreakdown
 
     response = await client.insights.get_account_insights(
         metrics=[AccountMetric.FOLLOWER_DEMOGRAPHICS],

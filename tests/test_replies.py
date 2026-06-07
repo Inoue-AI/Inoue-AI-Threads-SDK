@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
 
 
 @pytest.mark.asyncio
 async def test_get_replies(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/post_1/replies\?"),
-        payload={
+    router.add(
+        "/post_1/replies",
+        json={
             "data": [
                 {"id": "r1", "text": "Great post!", "username": "fan1"},
                 {"id": "r2", "text": "Love it", "username": "fan2"},
@@ -34,12 +31,12 @@ async def test_get_replies(
 
 @pytest.mark.asyncio
 async def test_get_conversation(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/post_1/conversation\?"),
-        payload={
+    router.add(
+        "/post_1/conversation",
+        json={
             "data": [
                 {"id": "r1", "text": "First reply"},
                 {"id": "r1_1", "text": "Reply to reply"},
@@ -53,13 +50,10 @@ async def test_get_conversation(
 
 @pytest.mark.asyncio
 async def test_hide_reply(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/reply_1/manage_reply\?"),
-        payload={"success": True},
-    )
+    router.add("/reply_1/manage_reply", json={"success": True})
 
     result = await client.replies.hide_reply("reply_1")
     assert result is True
@@ -67,13 +61,10 @@ async def test_hide_reply(
 
 @pytest.mark.asyncio
 async def test_unhide_reply(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/reply_1/manage_reply\?"),
-        payload={"success": True},
-    )
+    router.add("/reply_1/manage_reply", json={"success": True})
 
     result = await client.replies.unhide_reply("reply_1")
     assert result is True
@@ -81,12 +72,12 @@ async def test_unhide_reply(
 
 @pytest.mark.asyncio
 async def test_get_mentions(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/mentions\?"),
-        payload={
+    router.add(
+        "/me/mentions",
+        json={
             "data": [
                 {"id": "m1", "text": "Hey @user check this!", "username": "someone"},
             ],

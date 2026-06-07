@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
 from threads.exceptions import (
     ThreadsAuthError,
@@ -36,12 +33,13 @@ async def test_context_manager() -> None:
 
 @pytest.mark.asyncio
 async def test_auth_error(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={
+    router.add(
+        "/me",
+        status_code=401,
+        json={
             "error": {
                 "message": "Invalid OAuth access token",
                 "type": "OAuthException",
@@ -50,7 +48,6 @@ async def test_auth_error(
                 "fbtrace_id": "trace123",
             },
         },
-        status=401,
     )
 
     with pytest.raises(ThreadsAuthError) as exc_info:
@@ -62,12 +59,13 @@ async def test_auth_error(
 
 @pytest.mark.asyncio
 async def test_rate_limit_error(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={
+    router.add(
+        "/me",
+        status_code=429,
+        json={
             "error": {
                 "message": "Rate limit exceeded",
                 "type": "OAuthException",
@@ -75,7 +73,6 @@ async def test_rate_limit_error(
                 "fbtrace_id": "trace456",
             },
         },
-        status=429,
     )
 
     with pytest.raises(ThreadsRateLimitError):
@@ -84,12 +81,13 @@ async def test_rate_limit_error(
 
 @pytest.mark.asyncio
 async def test_not_found_error(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/nonexistent\?"),
-        payload={
+    router.add(
+        "/nonexistent",
+        status_code=404,
+        json={
             "error": {
                 "message": "Object does not exist",
                 "type": "GraphMethodException",
@@ -97,7 +95,6 @@ async def test_not_found_error(
                 "fbtrace_id": "trace789",
             },
         },
-        status=404,
     )
 
     with pytest.raises(ThreadsNotFoundError):
@@ -106,12 +103,13 @@ async def test_not_found_error(
 
 @pytest.mark.asyncio
 async def test_server_error(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={
+    router.add(
+        "/me",
+        status_code=500,
+        json={
             "error": {
                 "message": "Internal server error",
                 "type": "ServerException",
@@ -119,7 +117,6 @@ async def test_server_error(
                 "fbtrace_id": "trace000",
             },
         },
-        status=500,
     )
 
     with pytest.raises(ThreadsServerError):
@@ -128,12 +125,12 @@ async def test_server_error(
 
 @pytest.mark.asyncio
 async def test_unknown_fields_ignored(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={
+    router.add(
+        "/me",
+        json={
             "id": "12345",
             "username": "testuser",
             "brand_new_field": "should be ignored",

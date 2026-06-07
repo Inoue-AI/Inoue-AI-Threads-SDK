@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
 from threads.models.user import UserField
 
 
 @pytest.mark.asyncio
 async def test_get_profile_defaults(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={
+    router.add(
+        "/me",
+        json={
             "id": "12345",
             "username": "testuser",
             "name": "Test User",
@@ -38,13 +35,10 @@ async def test_get_profile_defaults(
 
 @pytest.mark.asyncio
 async def test_get_profile_specific_fields(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me\?"),
-        payload={"id": "12345", "username": "testuser"},
-    )
+    router.add("/me", json={"id": "12345", "username": "testuser"})
 
     user = await client.user.get_profile(
         fields=[UserField.ID, UserField.USERNAME],
@@ -52,17 +46,18 @@ async def test_get_profile_specific_fields(
     assert user.id == "12345"
     assert user.username == "testuser"
     assert user.name is None
+    # The requested fields are forwarded as a comma-joined query param.
+    sent = router.requests[-1]
+    assert sent.url.params["fields"] == "id,username"
+    assert sent.url.params["access_token"] == "test_access_token_123"
 
 
 @pytest.mark.asyncio
 async def test_get_profile_other_user(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/67890\?"),
-        payload={"id": "67890", "username": "other"},
-    )
+    router.add("/67890", json={"id": "67890", "username": "other"})
 
     user = await client.user.get_profile("67890")
     assert user.id == "67890"

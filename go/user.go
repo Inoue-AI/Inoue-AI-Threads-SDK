@@ -9,11 +9,11 @@ import (
 // User mirrors the subset of Threads user fields the Inoue backend consumes.
 // Fields are populated only when requested via the `fields` argument.
 type User struct {
-	ID                 string `json:"id,omitempty"`
-	Username           string `json:"username,omitempty"`
-	Name               string `json:"name,omitempty"`
+	ID                    string `json:"id,omitempty"`
+	Username              string `json:"username,omitempty"`
+	Name                  string `json:"name,omitempty"`
 	ThreadsProfilePicture string `json:"threads_profile_picture_url,omitempty"`
-	ThreadsBiography   string `json:"threads_biography,omitempty"`
+	ThreadsBiography      string `json:"threads_biography,omitempty"`
 }
 
 // GetUser fetches the profile for the given user (or "me" for the

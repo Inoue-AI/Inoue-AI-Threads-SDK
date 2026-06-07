@@ -22,6 +22,7 @@ from threads.models import (
     InsightPeriod,
     InsightsResponse,
     InsightValue,
+    LongLivedToken,
     ManageReplyResponse,
     MediaField,
     MediaMetric,
@@ -35,6 +36,7 @@ from threads.models import (
     ReplyListResponse,
     SearchMediaType,
     SearchResponse,
+    ShortLivedToken,
     Thread,
     ThreadChild,
     ThreadChildren,
@@ -42,13 +44,20 @@ from threads.models import (
     ThreadMediaType,
     ThreadOwner,
     ThreadsBaseModel,
+    ThreadsScope,
     User,
     UserField,
 )
+from threads.oauth import ThreadsOAuth
 
 __all__ = [
     # client
     "ThreadsClient",
+    # oauth
+    "ThreadsOAuth",
+    "LongLivedToken",
+    "ShortLivedToken",
+    "ThreadsScope",
     # exceptions
     "ThreadsAPIError",
     "ThreadsAuthError",

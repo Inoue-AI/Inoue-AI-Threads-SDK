@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
 from threads.exceptions import ThreadsConfigError, ThreadsPublishingError
 from threads.models.publishing import ContainerStatus
@@ -15,13 +12,10 @@ from threads.models.publishing import ContainerStatus
 
 @pytest.mark.asyncio
 async def test_create_text_post(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"id": "container_1"},
-    )
+    router.add("/me/threads", json={"id": "container_1"})
 
     resp = await client.publishing.create_text_post("me", "Hello Threads!")
     assert resp.id == "container_1"
@@ -29,13 +23,10 @@ async def test_create_text_post(
 
 @pytest.mark.asyncio
 async def test_create_image_post(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"id": "container_2"},
-    )
+    router.add("/me/threads", json={"id": "container_2"})
 
     resp = await client.publishing.create_image_post(
         "me",
@@ -47,13 +38,10 @@ async def test_create_image_post(
 
 @pytest.mark.asyncio
 async def test_create_video_post(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"id": "container_3"},
-    )
+    router.add("/me/threads", json={"id": "container_3"})
 
     resp = await client.publishing.create_video_post(
         "me",
@@ -76,13 +64,10 @@ async def test_create_carousel_too_many_items(client: ThreadsClient) -> None:
 
 @pytest.mark.asyncio
 async def test_create_carousel_post(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"id": "carousel_container"},
-    )
+    router.add("/me/threads", json={"id": "carousel_container"})
 
     resp = await client.publishing.create_carousel_post(
         "me",
@@ -93,13 +78,10 @@ async def test_create_carousel_post(
 
 @pytest.mark.asyncio
 async def test_publish(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads_publish\?"),
-        payload={"id": "published_post_1"},
-    )
+    router.add("/me/threads_publish", json={"id": "published_post_1"})
 
     resp = await client.publishing.publish("me", "container_1")
     assert resp.id == "published_post_1"
@@ -107,13 +89,10 @@ async def test_publish(
 
 @pytest.mark.asyncio
 async def test_get_container_status(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/container_1\?"),
-        payload={"id": "container_1", "status": "FINISHED"},
-    )
+    router.add("/container_1", json={"id": "container_1", "status": "FINISHED"})
 
     status = await client.publishing.get_container_status("container_1")
     assert status.status == ContainerStatus.FINISHED
@@ -122,17 +101,11 @@ async def test_get_container_status(
 
 @pytest.mark.asyncio
 async def test_wait_for_container_finished(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/c1\?"),
-        payload={"id": "c1", "status": "IN_PROGRESS"},
-    )
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/c1\?"),
-        payload={"id": "c1", "status": "FINISHED"},
-    )
+    router.add("/c1", json={"id": "c1", "status": "IN_PROGRESS"})
+    router.add("/c1", json={"id": "c1", "status": "FINISHED"})
 
     status = await client.publishing.wait_for_container("c1", poll_interval=0.01)
     assert status.status == ContainerStatus.FINISHED
@@ -140,12 +113,12 @@ async def test_wait_for_container_finished(
 
 @pytest.mark.asyncio
 async def test_wait_for_container_errored(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/c2\?"),
-        payload={"id": "c2", "status": "ERRORED", "error_message": "Bad format"},
+    router.add(
+        "/c2",
+        json={"id": "c2", "status": "ERRORED", "error_message": "Bad format"},
     )
 
     with pytest.raises(ThreadsPublishingError, match="Bad format"):
@@ -154,17 +127,11 @@ async def test_wait_for_container_errored(
 
 @pytest.mark.asyncio
 async def test_post_text_full_flow(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"id": "container_txt"},
-    )
-    mock_api.post(
-        re.compile(rf"^{re.escape(BASE)}/me/threads_publish\?"),
-        payload={"id": "published_txt"},
-    )
+    router.add("/me/threads", json={"id": "container_txt"})
+    router.add("/me/threads_publish", json={"id": "published_txt"})
 
     resp = await client.publishing.post_text("me", "Hello!")
     assert resp.id == "published_txt"
@@ -172,13 +139,10 @@ async def test_post_text_full_flow(
 
 @pytest.mark.asyncio
 async def test_delete_post(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.delete(
-        re.compile(rf"^{re.escape(BASE)}/thread_99\?"),
-        payload={"success": True},
-    )
+    router.add("/thread_99", json={"success": True})
 
     result = await client.publishing.delete_post("thread_99")
     assert result is True
@@ -186,12 +150,12 @@ async def test_delete_post(
 
 @pytest.mark.asyncio
 async def test_get_publishing_limit(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads_publishing_limit\?"),
-        payload={
+    router.add(
+        "/me/threads_publishing_limit",
+        json={
             "data": [
                 {
                     "quota_usage": 5,

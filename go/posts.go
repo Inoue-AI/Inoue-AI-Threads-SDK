@@ -11,19 +11,19 @@ import (
 // Post mirrors the Threads media object fields the Inoue backend consumes.
 // Fields are populated only when requested via the `fields` argument.
 type Post struct {
-	ID            string `json:"id,omitempty"`
+	ID               string `json:"id,omitempty"`
 	MediaProductType string `json:"media_product_type,omitempty"`
-	MediaType     string `json:"media_type,omitempty"`
-	MediaURL      string `json:"media_url,omitempty"`
-	Permalink     string `json:"permalink,omitempty"`
-	Owner         struct {
+	MediaType        string `json:"media_type,omitempty"`
+	MediaURL         string `json:"media_url,omitempty"`
+	Permalink        string `json:"permalink,omitempty"`
+	Owner            struct {
 		ID string `json:"id,omitempty"`
 	} `json:"owner,omitempty"`
-	Username   string `json:"username,omitempty"`
-	Text       string `json:"text,omitempty"`
-	Timestamp  string `json:"timestamp,omitempty"`
+	Username    string `json:"username,omitempty"`
+	Text        string `json:"text,omitempty"`
+	Timestamp   string `json:"timestamp,omitempty"`
 	ShortcodeID string `json:"shortcode,omitempty"`
-	IsQuotePost bool  `json:"is_quote_post,omitempty"`
+	IsQuotePost bool   `json:"is_quote_post,omitempty"`
 }
 
 // PostListResult is the cursor-paginated wrapper for /<user_id>/threads.

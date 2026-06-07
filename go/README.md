@@ -41,12 +41,46 @@ func main() {
 
 ## Methods
 
+### Read
+
 | Go method | Threads endpoint |
 |---|---|
 | `GetUser(ctx, userID, fields)` | `GET /{user-id}` |
 | `ListPosts(ctx, params)` | `GET /{user-id}/threads` |
 | `GetPost(ctx, mediaID, fields)` | `GET /{media-id}` |
-| `RefreshAccessToken(ctx, params)` | `GET /refresh_access_token` |
+
+### Publish
+
+| Go method | Threads endpoint |
+|---|---|
+| `CreateContainer(ctx, params)` | `POST /{user-id}/threads` |
+| `Publish(ctx, userID, creationID)` | `POST /{user-id}/threads_publish` |
+| `PostText(ctx, userID, text)` | create + publish (convenience) |
+| `DeletePost(ctx, threadID)` | `DELETE /{media-id}` |
+
+### OAuth 2.0
+
+| Go method | Threads endpoint |
+|---|---|
+| `AuthorizationURL(params)` | builds the consent URL (no I/O) |
+| `ExchangeCode(ctx, params)` | `POST /oauth/access_token` |
+| `ExchangeForLongLived(ctx, params)` | `GET /access_token` (`th_exchange_token`) |
+| `RefreshAccessToken(ctx, params)` | `GET /refresh_access_token` (`th_refresh_token`) |
+
+The OAuth token endpoints live on the **unversioned** Graph host
+(`https://graph.threads.net/...`, no `/v1.0` prefix); the client derives that
+host automatically from `BaseURL`.
+
+## Relationship to the backend's in-tree client
+
+The Inoue AI Go backend has its own minimal Threads REST client at
+`internal/domain/platforms/threads/client.go` (with `ExchangeCode`,
+`RefreshToken`, `GetMe`) that is tightly coupled to the backend's DB-backed
+connect/sync service and circuit breaker. This SDK is the **standalone,
+dependency-free** equivalent for external consumers and mirrors the same OAuth
+call shapes (grant types, endpoints) so the two stay behaviourally aligned.
+The backend client is intentionally **not** replaced by this SDK — it is
+specialised for in-process use.
 
 ## Operating principles
 

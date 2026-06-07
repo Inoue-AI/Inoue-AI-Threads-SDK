@@ -8,13 +8,13 @@ import (
 // Error represents an upstream Threads / Graph API error. Meta returns a
 // nested "error" object in JSON; this struct flattens it.
 type Error struct {
-	StatusCode    int    // HTTP status code returned by the API.
-	Type          string // Graph "error.type" (e.g. "OAuthException").
-	Code          int    // Graph "error.code".
-	Subcode       int    // Graph "error.error_subcode".
-	Message       string // Human-readable description from the API.
-	FBTraceID     string // Meta-side trace identifier for support tickets.
-	Body          []byte // Raw response body, retained for diagnostics.
+	StatusCode int    // HTTP status code returned by the API.
+	Type       string // Graph "error.type" (e.g. "OAuthException").
+	Code       int    // Graph "error.code".
+	Subcode    int    // Graph "error.error_subcode".
+	Message    string // Human-readable description from the API.
+	FBTraceID  string // Meta-side trace identifier for support tickets.
+	Body       []byte // Raw response body, retained for diagnostics.
 }
 
 func (e *Error) Error() string {

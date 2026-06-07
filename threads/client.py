@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from threads.apis.insights import InsightsAPI
 from threads.apis.media import MediaAPI
 from threads.apis.publishing import PublishingAPI
@@ -11,6 +13,9 @@ from threads.apis.user import UserAPI
 from threads.config import DEFAULT_TIMEOUT
 from threads.exceptions import ThreadsConfigError
 from threads.http.session import ThreadsSession
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class ThreadsClient:
@@ -31,6 +36,9 @@ class ThreadsClient:
         A valid Threads OAuth 2.0 access token.
     timeout:
         Default request timeout in seconds.
+    transport:
+        Optional :class:`httpx.AsyncBaseTransport` injected for testing
+        (e.g. :class:`httpx.MockTransport`). Leave ``None`` in production.
     """
 
     __slots__ = (
@@ -43,11 +51,21 @@ class ThreadsClient:
         "search",
     )
 
-    def __init__(self, access_token: str, *, timeout: float = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        access_token: str,
+        *,
+        timeout: float = DEFAULT_TIMEOUT,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         if not access_token:
             raise ThreadsConfigError("access_token must not be empty.")
 
-        self._session = ThreadsSession(access_token=access_token, timeout=timeout)
+        self._session = ThreadsSession(
+            access_token=access_token,
+            timeout=timeout,
+            transport=transport,
+        )
         self.user = UserAPI(self._session)
         self.publishing = PublishingAPI(self._session)
         self.media = MediaAPI(self._session)

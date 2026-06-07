@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
-from aioresponses import aioresponses
 
-from tests.conftest import BASE
+from tests.conftest import MockRouter
 from threads.client import ThreadsClient
 from threads.models.media import MediaField, ThreadMediaType
 
 
 @pytest.mark.asyncio
 async def test_list_threads(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={
+    router.add(
+        "/me/threads",
+        json={
             "data": [
                 {
                     "id": "t1",
@@ -51,12 +48,12 @@ async def test_list_threads(
 
 @pytest.mark.asyncio
 async def test_get_thread(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/t1\?"),
-        payload={
+    router.add(
+        "/t1",
+        json={
             "id": "t1",
             "media_type": "VIDEO",
             "media_url": "https://example.com/vid.mp4",
@@ -76,38 +73,35 @@ async def test_get_thread(
 
 @pytest.mark.asyncio
 async def test_list_threads_with_fields(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={"data": [{"id": "t3", "text": "Hi"}]},
-    )
+    router.add("/me/threads", json={"data": [{"id": "t3", "text": "Hi"}]})
 
     result = await client.media.list_threads(
         fields=[MediaField.ID, MediaField.TEXT],
     )
     assert len(result.data) == 1
     assert result.data[0].text == "Hi"
+    assert router.requests[-1].url.params["fields"] == "id,text"
 
 
 @pytest.mark.asyncio
 async def test_iter_threads(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    # Page 1
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={
+    # Page 1 (has a cursor) then page 2 (terminal — no cursor).
+    router.add(
+        "/me/threads",
+        json={
             "data": [{"id": "t1"}, {"id": "t2"}],
             "paging": {"cursors": {"after": "cursor_1"}},
         },
     )
-    # Page 2 (last)
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/me/threads\?"),
-        payload={
+    router.add(
+        "/me/threads",
+        json={
             "data": [{"id": "t3"}],
             "paging": {"cursors": {}},
         },
@@ -122,12 +116,12 @@ async def test_iter_threads(
 
 @pytest.mark.asyncio
 async def test_get_thread_carousel_children(
-    mock_api: aioresponses,
+    router: MockRouter,
     client: ThreadsClient,
 ) -> None:
-    mock_api.get(
-        re.compile(rf"^{re.escape(BASE)}/t_carousel\?"),
-        payload={
+    router.add(
+        "/t_carousel",
+        json={
             "id": "t_carousel",
             "media_type": "CAROUSEL_ALBUM",
             "children": {

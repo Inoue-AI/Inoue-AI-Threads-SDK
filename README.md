@@ -45,8 +45,9 @@ An async Python SDK for the **Meta Threads API** — covering publishing, media 
 
 ## Features
 
-- **Fully async** — built on `aiohttp` with an `asyncio`-native interface
+- **Fully async** — built on `httpx.AsyncClient` with an `asyncio`-native interface
 - **Typed responses** — every API response is a frozen Pydantic v2 model
+- **Built-in OAuth 2.0** — `ThreadsOAuth` covers the authorization-code flow: consent URL, code exchange, short→long-lived exchange, and long-lived refresh
 - **Six API namespaces** — `client.user`, `client.publishing`, `client.media`, `client.insights`, `client.replies`, `client.search`
 - **Convenience helpers** — one-call publishing for text/image/video/carousel, container polling, auto-pagination
 - **Clean exception hierarchy** — catch broad or specific errors as needed
@@ -314,9 +315,39 @@ mypy threads/
 
 ## Authentication
 
-This SDK does **not** implement the Threads OAuth 2.0 flow. Obtain an access
-token externally (e.g. via your web server or the Meta App Dashboard) and
-pass it to `ThreadsClient`. Token refresh must also be handled externally.
+The SDK ships a `ThreadsOAuth` client that implements the full Threads
+OAuth 2.0 authorization-code flow. It uses your app's `client_id` /
+`client_secret` (sourced from your environment or secret store — **never**
+hard-coded) and mints/refreshes user access tokens:
+
+```python
+from threads import ThreadsOAuth, ThreadsScope, ThreadsClient
+
+async with ThreadsOAuth(
+    client_id="...",        # Meta App ID
+    client_secret="...",    # from env / secret store
+    redirect_uri="https://app.example.com/callback",
+) as oauth:
+    # 1. Send the user to consent.
+    url = oauth.authorization_url(
+        [ThreadsScope.BASIC, ThreadsScope.CONTENT_PUBLISH],
+        state="csrf-token",
+    )
+
+    # 2. After the redirect back with ?code=..., exchange it.
+    short = await oauth.exchange_code(code)            # ~1 hour token
+    long = await oauth.exchange_for_long_lived(short.access_token)  # ~60 days
+
+    # 3. Later, refresh the long-lived token before it expires.
+    refreshed = await oauth.refresh_long_lived(long.access_token)
+
+# Use the resulting token with the data-plane client.
+async with ThreadsClient(access_token=long.access_token) as client:
+    me = await client.user.get_profile()
+```
+
+You may also bring your own externally-obtained token and skip `ThreadsOAuth`
+entirely — just pass it to `ThreadsClient(access_token=...)`.
 
 Required OAuth scopes per feature:
 

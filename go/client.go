@@ -43,11 +43,24 @@ type ClientOptions struct {
 // Client is the Threads API client. Safe for concurrent use. Callers must
 // invoke Close (or use defer) so idle TCP connections are released.
 type Client struct {
-	httpClient  *http.Client
-	baseURL     string
-	accessToken string
-	userAgent   string
-	ownsHTTP    bool
+	httpClient   *http.Client
+	baseURL      string
+	oauthBaseURL string
+	accessToken  string
+	userAgent    string
+	ownsHTTP     bool
+}
+
+// oauthBaseURLFromGraph derives the unversioned host that serves the OAuth
+// token endpoints from a (possibly versioned) Graph data-plane base URL. The
+// token endpoints (/oauth/access_token, /access_token, /refresh_access_token)
+// are NOT under the /v1.0 version prefix, so it must be stripped.
+func oauthBaseURLFromGraph(graphBaseURL string) string {
+	u, err := url.Parse(graphBaseURL)
+	if err != nil || u.Host == "" {
+		return graphBaseURL
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // New constructs a *Client with the supplied options.
@@ -65,9 +78,10 @@ func New(opts ClientOptions) *Client {
 		ua = "inoue-threads-sdk-go/1"
 	}
 	c := &Client{
-		baseURL:     baseURL,
-		accessToken: opts.AccessToken,
-		userAgent:   ua,
+		baseURL:      baseURL,
+		oauthBaseURL: oauthBaseURLFromGraph(baseURL),
+		accessToken:  opts.AccessToken,
+		userAgent:    ua,
 	}
 	if opts.HTTPClient != nil {
 		c.httpClient = opts.HTTPClient
@@ -162,14 +176,50 @@ func (c *Client) doPostForm(ctx context.Context, path string, form url.Values, o
 	return c.do(req, out)
 }
 
-// doRefresh executes the unauthenticated refresh-token endpoint. This call
-// uses application credentials and does not consume the user token.
-func (c *Client) doRefresh(ctx context.Context, query url.Values, out any) error {
-	fullURL := c.baseURL + "/refresh_access_token?" + query.Encode()
+// doDelete executes an authenticated DELETE against the Graph API and decodes
+// the JSON body into out. The access_token is appended automatically.
+func (c *Client) doDelete(ctx context.Context, path string, out any) error {
+	if c.accessToken == "" {
+		return errors.New("threads: access token is required for this endpoint")
+	}
+	query := url.Values{}
+	query.Set("access_token", c.accessToken)
+
+	fullURL := c.baseURL + "/" + strings.TrimLeft(path, "/") + "?" + query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fullURL, nil)
+	if err != nil {
+		return fmt.Errorf("threads: build request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", c.userAgent)
+
+	return c.do(req, out)
+}
+
+// doOAuthGet executes a GET against an OAuth token endpoint on the unversioned
+// Graph host. These calls carry their own credentials in the query string and
+// do not consume the *Client's stored user access token.
+func (c *Client) doOAuthGet(ctx context.Context, path string, query url.Values, out any) error {
+	fullURL := c.oauthBaseURL + "/" + strings.TrimLeft(path, "/") + "?" + query.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
 	if err != nil {
 		return fmt.Errorf("threads: build request: %w", err)
 	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", c.userAgent)
+	return c.do(req, out)
+}
+
+// doOAuthPost executes a form-encoded POST against an OAuth token endpoint on
+// the unversioned Graph host (used by the code->token exchange, which carries
+// the client secret in the body rather than the query string).
+func (c *Client) doOAuthPost(ctx context.Context, path string, form url.Values, out any) error {
+	fullURL := c.oauthBaseURL + "/" + strings.TrimLeft(path, "/")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("threads: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.userAgent)
 	return c.do(req, out)
@@ -215,4 +265,3 @@ func (c *Client) do(req *http.Request, out any) error {
 	}
 	return nil
 }
-

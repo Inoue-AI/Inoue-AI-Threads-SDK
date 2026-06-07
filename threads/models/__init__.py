@@ -19,6 +19,11 @@ from threads.models.media import (
     ThreadMediaType,
     ThreadOwner,
 )
+from threads.models.oauth import (
+    LongLivedToken,
+    ShortLivedToken,
+    ThreadsScope,
+)
 from threads.models.publishing import (
     ContainerStatus,
     ContainerStatusResponse,
@@ -53,6 +58,10 @@ __all__ = [
     "ThreadListResponse",
     "ThreadMediaType",
     "ThreadOwner",
+    # oauth
+    "LongLivedToken",
+    "ShortLivedToken",
+    "ThreadsScope",
     # publishing
     "ContainerStatus",
     "ContainerStatusResponse",
