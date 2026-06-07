@@ -92,6 +92,61 @@ func (c *Client) ListPosts(ctx context.Context, p ListPostsParams) (*PostListRes
 	return out, nil
 }
 
+// IterPostsParams configures IterPosts. It mirrors the page-level inputs of
+// ListPostsParams but omits the cursor fields (After/Before) because IterPosts
+// drives pagination itself.
+type IterPostsParams struct {
+	UserID string   // Defaults to "me".
+	Fields []string // Defaults to a sensible set when empty.
+	Limit  int      // Per-page size. Defaults to 25 when zero.
+	Since  string   // Optional ISO-8601 timestamp.
+	Until  string   // Optional ISO-8601 timestamp.
+	// MaxPages caps how many pages are fetched (0 = no cap; follow cursors
+	// until the API stops returning an "after" cursor). A cap guards against
+	// runaway iteration and unbounded memory growth.
+	MaxPages int
+}
+
+// IterPosts returns all posts for a user across pages, transparently following
+// the cursor-based "after" links. It is the Go equivalent of the Python SDK's
+// async generator MediaAPI.iter_threads: where Python yields lazily, this Go
+// helper accumulates into a slice (the repo's established convention for
+// convenience iterators). Pagination stops when the API returns no further
+// "after" cursor, when MaxPages is reached, or when ctx is cancelled.
+func (c *Client) IterPosts(ctx context.Context, p IterPostsParams) ([]Post, error) {
+	all := make([]Post, 0)
+	after := ""
+	pages := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		page, err := c.ListPosts(ctx, ListPostsParams{
+			UserID: p.UserID,
+			Fields: p.Fields,
+			Limit:  p.Limit,
+			Since:  p.Since,
+			Until:  p.Until,
+			After:  after,
+		})
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, page.Data...)
+		pages++
+
+		next := page.Paging.Cursors.After
+		if next == "" {
+			break
+		}
+		if p.MaxPages > 0 && pages >= p.MaxPages {
+			break
+		}
+		after = next
+	}
+	return all, nil
+}
+
 // GetPost fetches a single post by media ID.
 func (c *Client) GetPost(ctx context.Context, mediaID string, fields []string) (*Post, error) {
 	if mediaID == "" {

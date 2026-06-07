@@ -47,6 +47,7 @@ func main() {
 |---|---|
 | `GetUser(ctx, userID, fields)` | `GET /{user-id}` |
 | `ListPosts(ctx, params)` | `GET /{user-id}/threads` |
+| `IterPosts(ctx, params)` | `GET /{user-id}/threads` (auto-follows cursors) |
 | `GetPost(ctx, mediaID, fields)` | `GET /{media-id}` |
 
 ### Publish
@@ -54,9 +55,43 @@ func main() {
 | Go method | Threads endpoint |
 |---|---|
 | `CreateContainer(ctx, params)` | `POST /{user-id}/threads` |
+| `CreateTextPost(ctx, params)` | `POST /{user-id}/threads` (TEXT) |
+| `CreateImagePost(ctx, params)` | `POST /{user-id}/threads` (IMAGE) |
+| `CreateVideoPost(ctx, params)` | `POST /{user-id}/threads` (VIDEO) |
+| `CreateCarouselPost(ctx, params)` | `POST /{user-id}/threads` (CAROUSEL) |
 | `Publish(ctx, userID, creationID)` | `POST /{user-id}/threads_publish` |
+| `GetContainerStatus(ctx, containerID)` | `GET /{container-id}` (status) |
+| `WaitForContainer(ctx, containerID, params)` | poll until terminal status |
 | `PostText(ctx, userID, text)` | create + publish (convenience) |
+| `PostImage(ctx, params)` | create + wait + publish (convenience) |
+| `PostVideo(ctx, params)` | create + wait + publish (convenience) |
+| `PostCarousel(ctx, params)` | create + wait + publish (convenience) |
 | `DeletePost(ctx, threadID)` | `DELETE /{media-id}` |
+| `GetPublishingLimit(ctx)` | `GET /me/threads_publishing_limit` |
+
+### Insights
+
+| Go method | Threads endpoint |
+|---|---|
+| `GetMediaInsights(ctx, mediaID, metrics)` | `GET /{media-id}/insights` |
+| `GetAccountInsights(ctx, params)` | `GET /me/threads_insights` |
+| `GetMetric(ctx, mediaID, metric)` | single-metric convenience |
+
+### Replies
+
+| Go method | Threads endpoint |
+|---|---|
+| `GetReplies(ctx, mediaID, fields, reverse)` | `GET /{media-id}/replies` |
+| `GetConversation(ctx, mediaID, fields, reverse)` | `GET /{media-id}/conversation` |
+| `HideReply(ctx, replyID)` | `POST /{reply-id}/manage_reply` (`hide=true`) |
+| `UnhideReply(ctx, replyID)` | `POST /{reply-id}/manage_reply` (`hide=false`) |
+| `GetMentions(ctx, fields)` | `GET /me/mentions` |
+
+### Search
+
+| Go method | Threads endpoint |
+|---|---|
+| `Search(ctx, params)` | `GET /keyword_search` |
 
 ### OAuth 2.0
 
